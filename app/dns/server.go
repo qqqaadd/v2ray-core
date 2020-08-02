@@ -359,6 +359,11 @@ func (s *Server) lookupIPInternal(domain string, option IPOption) ([]net.IP, err
 			newError("failed to lookup ip for domain ", domain, " at server ", client.Name()).Base(err).WriteToLog()
 			lastErr = err
 		}
+		//超时返回0.0.0.0
+		if err == context.DeadlineExceeded {
+			return []net.IP{net.ParseIP("0.0.0.0")},nil
+		}
+		
 		if err != context.Canceled && err != context.DeadlineExceeded && err != errExpectedIPNonMatch {
 			return nil, err
 		}
