@@ -9,7 +9,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
+	// "fmt"
 	"hash"
 	"hash/fnv"
 	"io"
@@ -75,9 +75,9 @@ func NewClientSession(idHash protocol.IDHash, ctx context.Context) *ClientSessio
 		}
 	}
 
-	if session.isAEADRequest {
-		fmt.Println("=======VMESSAEADEXPERIMENT ENABLED========")
-	}
+	// if session.isAEADRequest {
+	// 	fmt.Println("=======VMESSAEADEXPERIMENT ENABLED========")
+	// }
 
 	copy(session.requestBodyKey[:], randomBytes[:16])
 	copy(session.requestBodyIV[:], randomBytes[16:32])
