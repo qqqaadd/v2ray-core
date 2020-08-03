@@ -253,7 +253,7 @@ func (s *Server) queryIPTimeout(idx uint32, client Client, domain string, option
 func (s *Server) LookupIP(domain string) ([]net.IP, error) {
 	return s.lookupIPInternal(domain, IPOption{
 		IPv4Enable: true,
-		IPv6Enable: true,
+		IPv6Enable: false,
 	})
 }
 
