@@ -420,12 +420,11 @@ func (s *Server) lookupIPInternal(domain string, option IPOption) ([]net.IP, err
 			newError("failed to lookup ip for domain ", domain, " at server ", client.Name()).Base(err).WriteToLog()
 			lastErr = err
 		}
-		if err != context.Canceled && err != context.DeadlineExceeded && err != errExpectedIPNonMatch {
-			return nil, err
-		}
 	}
 
-	return nil, newError("returning nil for domain ", domain).Base(lastErr)
+	newError("returning nil for domain ", domain).Base(lastErr).WriteToLog()
+
+	return nil, lastErr
 }
 
 func init() {
