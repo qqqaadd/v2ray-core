@@ -179,7 +179,7 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 var (
 	enablePadding = false
-	aead_disabled = false
+	aead_disabled = true
 )
 
 func shouldEnablePadding(s protocol.SecurityType) bool {
