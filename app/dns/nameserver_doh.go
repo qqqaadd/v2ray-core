@@ -231,7 +231,7 @@ func (s *DoHNameServer) sendQuery(ctx context.Context, domain string, clientIP n
 
 			dnsCtx = session.ContextWithContent(dnsCtx, &session.Content{
 				Protocol:       "https",
-				SkipDNSResolve: true,
+				SkipDNSResolve: false,
 			})
 
 			// forced to use mux for DOH
@@ -296,7 +296,7 @@ func (s *DoHNameServer) findIPsForDomain(domain string, option IPOption) ([]net.
 
 	var ips []net.Address
 	var lastErr error
-	if option.IPv6Enable && record.AAAA != nil && record.AAAA.RCode == dnsmessage.RCodeSuccess {
+	if option.IPv6Enable && record.AAAA != nil {
 		aaaa, err := record.AAAA.getIPs()
 		if err != nil {
 			lastErr = err
@@ -304,7 +304,7 @@ func (s *DoHNameServer) findIPsForDomain(domain string, option IPOption) ([]net.
 		ips = append(ips, aaaa...)
 	}
 
-	if option.IPv4Enable && record.A != nil && record.A.RCode == dnsmessage.RCodeSuccess {
+	if option.IPv4Enable && record.A != nil {
 		a, err := record.A.getIPs()
 		if err != nil {
 			lastErr = err
