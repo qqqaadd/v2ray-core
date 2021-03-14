@@ -3,9 +3,9 @@
 package router
 
 import (
-	"v2ray.com/core/common/net"
-	"v2ray.com/core/features/outbound"
-	"v2ray.com/core/features/routing"
+	"github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/features/outbound"
+	"github.com/v2fly/v2ray-core/v4/features/routing"
 )
 
 // CIDRList is an alias of []*CIDR to provide sort.Interface.
@@ -69,11 +69,24 @@ func (rr *RoutingRule) BuildCondition() (Condition, error) {
 	conds := NewConditionChan()
 
 	if len(rr.Domain) > 0 {
-		matcher, err := NewDomainMatcher(rr.Domain)
-		if err != nil {
-			return nil, newError("failed to build domain condition").Base(err)
+		switch rr.DomainMatcher {
+		case "hybrid":
+			matcher, err := NewACAutomatonDomainMatcher(rr.Domain)
+			if err != nil {
+				return nil, newError("failed to build domain condition with ACAutomatonDomainMatcher").Base(err)
+			}
+			newError("ACAutomatonDomainMatcher is enabled for ", len(rr.Domain), "domain rules(s)").AtDebug().WriteToLog()
+			conds.Add(matcher)
+		case "linear":
+			fallthrough
+		default:
+			matcher, err := NewDomainMatcher(rr.Domain)
+			if err != nil {
+				return nil, newError("failed to build domain condition").Base(err)
+			}
+			conds.Add(matcher)
 		}
-		conds.Add(matcher)
+
 	}
 
 	if len(rr.UserEmail) > 0 {
