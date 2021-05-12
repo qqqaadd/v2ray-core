@@ -144,7 +144,7 @@ jobs:
           path: v2ray-${{ steps.get_filename.outputs.ASSET_NAME }}.zip
 
       - name: Upload files to GitHub release
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@2.2.1
         if: github.event_name == 'release'
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -206,7 +206,7 @@ jobs:
           path: build_artifacts/Release.unsigned.dgst
 
       - name: Upload Release.unsigned related files
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@2.2.1
         if: github.event_name == 'release'
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
