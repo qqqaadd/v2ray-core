@@ -44,14 +44,13 @@ func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *interne
 	grpcSettings := streamSettings.ProtocolSettings.(*Config)
 
 	config := tls.ConfigFromStreamSettings(streamSettings)
-	var dialOption = grpc.WithInsecure()
+	dialOption := grpc.WithInsecure()
 
 	if config != nil {
 		dialOption = grpc.WithTransportCredentials(credentials.NewTLS(config.GetTLSConfig()))
 	}
 
-	conn, err := getGrpcClient(dest, dialOption)
-
+	conn, err := getGrpcClient(ctx, dest, dialOption)
 	if err != nil {
 		return nil, newError("Cannot dial grpc").Base(err)
 	}
@@ -63,7 +62,7 @@ func dialgRPC(ctx context.Context, dest net.Destination, streamSettings *interne
 	return encoding.NewGunConn(gunService, nil), nil
 }
 
-func getGrpcClient(dest net.Destination, dialOption grpc.DialOption) (*grpc.ClientConn, error) {
+func getGrpcClient(ctx context.Context, dest net.Destination, dialOption grpc.DialOption) (*grpc.ClientConn, error) {
 	globalDialerAccess.Lock()
 	defer globalDialerAccess.Unlock()
 
@@ -71,6 +70,7 @@ func getGrpcClient(dest net.Destination, dialOption grpc.DialOption) (*grpc.Clie
 		globalDialerMap = make(map[net.Destination]*grpc.ClientConn)
 	}
 
+	// TODO Should support chain proxy to the same destination
 	if client, found := globalDialerMap[dest]; found && client.GetState() != connectivity.Shutdown {
 		return client, nil
 	}
@@ -83,11 +83,11 @@ func getGrpcClient(dest net.Destination, dialOption grpc.DialOption) (*grpc.Clie
 				BaseDelay:  500 * time.Millisecond,
 				Multiplier: 1.5,
 				Jitter:     0.2,
-				MaxDelay:   19 * time.Millisecond,
+				MaxDelay:   19 * time.Second,
 			},
 			MinConnectTimeout: 5 * time.Second,
 		}),
-		grpc.WithContextDialer(func(ctx context.Context, s string) (gonet.Conn, error) {
+		grpc.WithContextDialer(func(ctxGrpc context.Context, s string) (gonet.Conn, error) {
 			rawHost, rawPort, err := net.SplitHostPort(s)
 			if err != nil {
 				return nil, err

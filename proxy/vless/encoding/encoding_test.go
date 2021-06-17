@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/buf"
@@ -52,7 +53,8 @@ func TestRequestSerialization(t *testing.T) {
 	if r := cmp.Diff(actualRequest, expectedRequest, cmp.AllowUnexported(protocol.ID{})); r != "" {
 		t.Error(r)
 	}
-	if r := cmp.Diff(actualAddons, expectedAddons); r != "" {
+
+	if r := cmp.Diff(actualAddons, expectedAddons, protocmp.Transform()); r != "" {
 		t.Error(r)
 	}
 }
@@ -120,7 +122,8 @@ func TestMuxRequest(t *testing.T) {
 	if r := cmp.Diff(actualRequest, expectedRequest, cmp.AllowUnexported(protocol.ID{})); r != "" {
 		t.Error(r)
 	}
-	if r := cmp.Diff(actualAddons, expectedAddons); r != "" {
+
+	if r := cmp.Diff(actualAddons, expectedAddons, protocmp.Transform()); r != "" {
 		t.Error(r)
 	}
 }
