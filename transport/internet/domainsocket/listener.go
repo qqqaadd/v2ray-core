@@ -8,8 +8,6 @@ import (
 	gotls "crypto/tls"
 	"strings"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/net"
 	"github.com/v2fly/v2ray-core/v4/transport/internet"
@@ -22,7 +20,6 @@ type Listener struct {
 	tlsConfig *gotls.Config
 	config    *Config
 	addConn   internet.ConnHandler
-	locker    *fileLocker
 }
 
 func Listen(ctx context.Context, address net.Address, port net.Port, streamSettings *internet.MemoryStreamConfig, handler internet.ConnHandler) (internet.Listener, error) {
