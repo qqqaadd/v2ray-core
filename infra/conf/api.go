@@ -3,11 +3,11 @@ package conf
 import (
 	"strings"
 
-	"v2ray.com/core/app/commander"
-	loggerservice "v2ray.com/core/app/log/command"
-	handlerservice "v2ray.com/core/app/proxyman/command"
-	statsservice "v2ray.com/core/app/stats/command"
-	"v2ray.com/core/common/serial"
+	"github.com/v2fly/v2ray-core/v4/app/commander"
+	loggerservice "github.com/v2fly/v2ray-core/v4/app/log/command"
+	handlerservice "github.com/v2fly/v2ray-core/v4/app/proxyman/command"
+	statsservice "github.com/v2fly/v2ray-core/v4/app/stats/command"
+	"github.com/v2fly/v2ray-core/v4/common/serial"
 )
 
 type APIConfig struct {
@@ -23,6 +23,8 @@ func (c *APIConfig) Build() (*commander.Config, error) {
 	services := make([]*serial.TypedMessage, 0, 16)
 	for _, s := range c.Services {
 		switch strings.ToLower(s) {
+		case "reflectionservice":
+			services = append(services, serial.ToTypedMessage(&commander.ReflectionConfig{}))
 		case "handlerservice":
 			services = append(services, serial.ToTypedMessage(&handlerservice.Config{}))
 		case "loggerservice":

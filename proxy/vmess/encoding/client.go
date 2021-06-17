@@ -15,15 +15,15 @@ import (
 
 	"golang.org/x/crypto/chacha20poly1305"
 
-	"v2ray.com/core/common"
-	"v2ray.com/core/common/bitmask"
-	"v2ray.com/core/common/buf"
-	"v2ray.com/core/common/crypto"
-	"v2ray.com/core/common/dice"
-	"v2ray.com/core/common/protocol"
-	"v2ray.com/core/common/serial"
-	"v2ray.com/core/proxy/vmess"
-	vmessaead "v2ray.com/core/proxy/vmess/aead"
+	"github.com/v2fly/v2ray-core/v4/common"
+	"github.com/v2fly/v2ray-core/v4/common/bitmask"
+	"github.com/v2fly/v2ray-core/v4/common/buf"
+	"github.com/v2fly/v2ray-core/v4/common/crypto"
+	"github.com/v2fly/v2ray-core/v4/common/dice"
+	"github.com/v2fly/v2ray-core/v4/common/protocol"
+	"github.com/v2fly/v2ray-core/v4/common/serial"
+	"github.com/v2fly/v2ray-core/v4/proxy/vmess"
+	vmessaead "github.com/v2fly/v2ray-core/v4/proxy/vmess/aead"
 )
 
 func hashTimestamp(h hash.Hash, t protocol.Timestamp) []byte {
@@ -90,8 +90,8 @@ func (c *ClientSession) EncodeRequestHeader(header *protocol.RequestHeader, writ
 	common.Must(buffer.WriteByte(c.responseHeader))
 	common.Must(buffer.WriteByte(byte(header.Option)))
 
-	padingLen := dice.Roll(16)
-	security := byte(padingLen<<4) | byte(header.Security)
+	paddingLen := dice.Roll(16)
+	security := byte(paddingLen<<4) | byte(header.Security)
 	common.Must2(buffer.Write([]byte{security, byte(0), byte(header.Command)}))
 
 	if header.Command != protocol.RequestCommandMux {
@@ -100,8 +100,8 @@ func (c *ClientSession) EncodeRequestHeader(header *protocol.RequestHeader, writ
 		}
 	}
 
-	if padingLen > 0 {
-		common.Must2(buffer.ReadFullFrom(rand.Reader, int32(padingLen)))
+	if paddingLen > 0 {
+		common.Must2(buffer.ReadFullFrom(rand.Reader, int32(paddingLen)))
 	}
 
 	{
@@ -207,7 +207,7 @@ func (c *ClientSession) DecodeResponseHeader(reader io.Reader) (*protocol.Respon
 		}
 		if decryptedResponseHeaderLengthBinaryBuffer, err := aeadResponseHeaderLengthEncryptionAEAD.Open(nil, aeadResponseHeaderLengthEncryptionIV, aeadEncryptedResponseHeaderLength[:], nil); err != nil {
 			return nil, newError("Failed To Decrypt Length").Base(err)
-		} else {
+		} else { // nolint: golint
 			common.Must(binary.Read(bytes.NewReader(decryptedResponseHeaderLengthBinaryBuffer), binary.BigEndian, &decryptedResponseHeaderLengthBinaryDeserializeBuffer))
 			decryptedResponseHeaderLength = int(decryptedResponseHeaderLengthBinaryDeserializeBuffer)
 		}
@@ -226,7 +226,7 @@ func (c *ClientSession) DecodeResponseHeader(reader io.Reader) (*protocol.Respon
 
 		if decryptedResponseHeaderBuffer, err := aeadResponseHeaderPayloadEncryptionAEAD.Open(nil, aeadResponseHeaderPayloadEncryptionIV, encryptedResponseHeaderBuffer, nil); err != nil {
 			return nil, newError("Failed To Decrypt Payload").Base(err)
-		} else {
+		} else { // nolint: golint
 			c.responseReader = bytes.NewReader(decryptedResponseHeaderBuffer)
 		}
 	}

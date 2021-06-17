@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"v2ray.com/core/common/net"
-	"v2ray.com/core/common/protocol"
+	"github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/protocol"
 )
 
 type StringList []string
@@ -62,6 +62,8 @@ func (v Network) Build() net.Network {
 		return net.Network_TCP
 	case "udp":
 		return net.Network_UDP
+	case "unix":
+		return net.Network_UNIX
 	default:
 		return net.Network_Unknown
 	}

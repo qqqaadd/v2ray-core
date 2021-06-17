@@ -1,6 +1,6 @@
 package external
 
-//go:generate go run v2ray.com/core/common/errors/errorgen
+//go:generate go run github.com/v2fly/v2ray-core/v4/common/errors/errorgen
 
 import (
 	"bytes"
@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"v2ray.com/core/common/buf"
-	"v2ray.com/core/common/platform/ctlcmd"
-	"v2ray.com/core/main/confloader"
+	"github.com/v2fly/v2ray-core/v4/common/buf"
+	"github.com/v2fly/v2ray-core/v4/common/platform/ctlcmd"
+	"github.com/v2fly/v2ray-core/v4/main/confloader"
 )
 
 func ConfigLoader(arg string) (out io.Reader, err error) {
@@ -72,8 +72,8 @@ func FetchHTTPContent(target string) ([]byte, error) {
 	return content, nil
 }
 
-func ExtConfigLoader(files []string) (io.Reader, error) {
-	buf, err := ctlcmd.Run(append([]string{"config"}, files...), os.Stdin)
+func ExtConfigLoader(files []string, reader io.Reader) (io.Reader, error) {
+	buf, err := ctlcmd.Run(append([]string{"config"}, files...), reader)
 	if err != nil {
 		return nil, err
 	}

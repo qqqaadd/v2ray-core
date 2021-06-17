@@ -2,7 +2,7 @@
 
 package inbound
 
-//go:generate go run v2ray.com/core/common/errors/errorgen
+//go:generate go run github.com/v2fly/v2ray-core/v4/common/errors/errorgen
 
 import (
 	"context"
@@ -10,31 +10,25 @@ import (
 	"strconv"
 	"time"
 
-	"v2ray.com/core"
-	"v2ray.com/core/common"
-	"v2ray.com/core/common/buf"
-	"v2ray.com/core/common/errors"
-	"v2ray.com/core/common/log"
-	"v2ray.com/core/common/net"
-	"v2ray.com/core/common/platform"
-	"v2ray.com/core/common/protocol"
-	"v2ray.com/core/common/retry"
-	"v2ray.com/core/common/session"
-	"v2ray.com/core/common/signal"
-	"v2ray.com/core/common/task"
-	"v2ray.com/core/features/dns"
-	feature_inbound "v2ray.com/core/features/inbound"
-	"v2ray.com/core/features/policy"
-	"v2ray.com/core/features/routing"
-	"v2ray.com/core/proxy/vless"
-	"v2ray.com/core/proxy/vless/encoding"
-	"v2ray.com/core/transport/internet"
-	"v2ray.com/core/transport/internet/tls"
-	"v2ray.com/core/transport/internet/xtls"
-)
-
-var (
-	xtls_show = false
+	core "github.com/v2fly/v2ray-core/v4"
+	"github.com/v2fly/v2ray-core/v4/common"
+	"github.com/v2fly/v2ray-core/v4/common/buf"
+	"github.com/v2fly/v2ray-core/v4/common/errors"
+	"github.com/v2fly/v2ray-core/v4/common/log"
+	"github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/protocol"
+	"github.com/v2fly/v2ray-core/v4/common/retry"
+	"github.com/v2fly/v2ray-core/v4/common/session"
+	"github.com/v2fly/v2ray-core/v4/common/signal"
+	"github.com/v2fly/v2ray-core/v4/common/task"
+	"github.com/v2fly/v2ray-core/v4/features/dns"
+	feature_inbound "github.com/v2fly/v2ray-core/v4/features/inbound"
+	"github.com/v2fly/v2ray-core/v4/features/policy"
+	"github.com/v2fly/v2ray-core/v4/features/routing"
+	"github.com/v2fly/v2ray-core/v4/proxy/vless"
+	"github.com/v2fly/v2ray-core/v4/proxy/vless/encoding"
+	"github.com/v2fly/v2ray-core/v4/transport/internet"
+	"github.com/v2fly/v2ray-core/v4/transport/internet/tls"
 )
 
 func init() {
@@ -48,13 +42,6 @@ func init() {
 		}
 		return New(ctx, config.(*Config), dc)
 	}))
-
-	const defaultFlagValue = "NOT_DEFINED_AT_ALL"
-
-	xtlsShow := platform.NewEnvFlag("v2ray.vless.xtls.show").GetValue(func() string { return defaultFlagValue })
-	if xtlsShow == "true" {
-		xtls_show = true
-	}
 }
 
 // Handler is an inbound connection handler that handles messages in VLess protocol.
@@ -138,14 +125,16 @@ func (h *Handler) RemoveUser(ctx context.Context, e string) error {
 
 // Network implements proxy.Inbound.Network().
 func (*Handler) Network() []net.Network {
-	return []net.Network{net.Network_TCP}
+	return []net.Network{net.Network_TCP, net.Network_UNIX}
 }
 
 // Process implements proxy.Inbound.Process().
 func (h *Handler) Process(ctx context.Context, network net.Network, connection internet.Connection, dispatcher routing.Dispatcher) error {
 	sid := session.ExportIDToError(ctx)
+
 	iConn := connection
-	if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
+	statConn, ok := iConn.(*internet.StatCouterConnection)
+	if ok {
 		iConn = statConn.Connection
 	}
 
@@ -189,9 +178,6 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 			if len(apfb) > 1 || apfb[""] == nil {
 				if tlsConn, ok := iConn.(*tls.Conn); ok {
 					alpn = tlsConn.ConnectionState().NegotiatedProtocol
-					newError("realAlpn = " + alpn).AtInfo().WriteToLog(sid)
-				} else if xtlsConn, ok := iConn.(*xtls.Conn); ok {
-					alpn = xtlsConn.ConnectionState().NegotiatedProtocol
 					newError("realAlpn = " + alpn).AtInfo().WriteToLog(sid)
 				}
 				if apfb[alpn] == nil {
@@ -366,39 +352,7 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 	}
 	inbound.User = request.User
 
-	account := request.User.Account.(*vless.MemoryAccount)
-
-	responseAddons := &encoding.Addons{
-		// Flow: requestAddons.Flow,
-	}
-
-	switch requestAddons.Flow {
-	case vless.XRO, vless.XRD:
-		if account.Flow == requestAddons.Flow {
-			switch request.Command {
-			case protocol.RequestCommandMux:
-				return newError(requestAddons.Flow + " doesn't support Mux").AtWarning()
-			case protocol.RequestCommandUDP:
-				return newError(requestAddons.Flow + " doesn't support UDP").AtWarning()
-			case protocol.RequestCommandTCP:
-				if xtlsConn, ok := iConn.(*xtls.Conn); ok {
-					xtlsConn.RPRX = true
-					xtlsConn.SHOW = xtls_show
-					xtlsConn.MARK = "XTLS"
-					if requestAddons.Flow == vless.XRD {
-						xtlsConn.DirectMode = true
-					}
-				} else {
-					return newError(`failed to use ` + requestAddons.Flow + `, maybe "security" is not "xtls"`).AtWarning()
-				}
-			}
-		} else {
-			return newError(account.ID.String() + " is not able to use " + requestAddons.Flow).AtWarning()
-		}
-	case "":
-	default:
-		return newError("unknown request flow " + requestAddons.Flow).AtWarning()
-	}
+	responseAddons := &encoding.Addons{}
 
 	if request.Command != protocol.RequestCommandMux {
 		ctx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
@@ -465,11 +419,6 @@ func (h *Handler) Process(ctx context.Context, network net.Network, connection i
 		// from serverReader.ReadMultiBuffer to clientWriter.WriteMultiBufer
 		if err := buf.Copy(serverReader, clientWriter, buf.UpdateActivity(timer)); err != nil {
 			return newError("failed to transfer response payload").Base(err).AtInfo()
-		}
-
-		// Indicates the end of response payload.
-		switch responseAddons.Flow {
-		default:
 		}
 
 		return nil

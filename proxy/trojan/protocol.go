@@ -4,9 +4,9 @@ import (
 	"encoding/binary"
 	"io"
 
-	"v2ray.com/core/common/buf"
-	"v2ray.com/core/common/net"
-	"v2ray.com/core/common/protocol"
+	"github.com/v2fly/v2ray-core/v4/common/buf"
+	"github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/protocol"
 )
 
 var (
@@ -20,8 +20,7 @@ var (
 )
 
 const (
-	maxLength = 8192
-
+	maxLength       = 8192
 	commandTCP byte = 1
 	commandUDP byte = 3
 )
@@ -129,7 +128,7 @@ func (w *PacketWriter) WriteMultiBufferWithMetadata(mb buf.MultiBuffer, dest net
 	return nil
 }
 
-func (w *PacketWriter) writePacket(payload []byte, dest net.Destination) (int, error) {
+func (w *PacketWriter) writePacket(payload []byte, dest net.Destination) (int, error) { // nolint: unparam
 	buffer := buf.StackNew()
 	defer buffer.Release()
 

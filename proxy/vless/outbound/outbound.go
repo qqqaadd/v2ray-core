@@ -2,45 +2,32 @@
 
 package outbound
 
-//go:generate go run v2ray.com/core/common/errors/errorgen
+//go:generate go run github.com/v2fly/v2ray-core/v4/common/errors/errorgen
 
 import (
 	"context"
 	"time"
 
-	"v2ray.com/core"
-	"v2ray.com/core/common"
-	"v2ray.com/core/common/buf"
-	"v2ray.com/core/common/net"
-	"v2ray.com/core/common/platform"
-	"v2ray.com/core/common/protocol"
-	"v2ray.com/core/common/retry"
-	"v2ray.com/core/common/session"
-	"v2ray.com/core/common/signal"
-	"v2ray.com/core/common/task"
-	"v2ray.com/core/features/policy"
-	"v2ray.com/core/proxy/vless"
-	"v2ray.com/core/proxy/vless/encoding"
-	"v2ray.com/core/transport"
-	"v2ray.com/core/transport/internet"
-	"v2ray.com/core/transport/internet/xtls"
-)
-
-var (
-	xtls_show = false
+	core "github.com/v2fly/v2ray-core/v4"
+	"github.com/v2fly/v2ray-core/v4/common"
+	"github.com/v2fly/v2ray-core/v4/common/buf"
+	"github.com/v2fly/v2ray-core/v4/common/net"
+	"github.com/v2fly/v2ray-core/v4/common/protocol"
+	"github.com/v2fly/v2ray-core/v4/common/retry"
+	"github.com/v2fly/v2ray-core/v4/common/session"
+	"github.com/v2fly/v2ray-core/v4/common/signal"
+	"github.com/v2fly/v2ray-core/v4/common/task"
+	"github.com/v2fly/v2ray-core/v4/features/policy"
+	"github.com/v2fly/v2ray-core/v4/proxy/vless"
+	"github.com/v2fly/v2ray-core/v4/proxy/vless/encoding"
+	"github.com/v2fly/v2ray-core/v4/transport"
+	"github.com/v2fly/v2ray-core/v4/transport/internet"
 )
 
 func init() {
 	common.Must(common.RegisterConfig((*Config)(nil), func(ctx context.Context, config interface{}) (interface{}, error) {
 		return New(ctx, config.(*Config))
 	}))
-
-	const defaultFlagValue = "NOT_DEFINED_AT_ALL"
-
-	xtlsShow := platform.NewEnvFlag("v2ray.vless.xtls.show").GetValue(func() string { return defaultFlagValue })
-	if xtlsShow == "true" {
-		xtls_show = true
-	}
 }
 
 // Handler is an outbound connection handler for VLess protocol.
@@ -89,11 +76,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 	}
 	defer conn.Close()
 
-	iConn := conn
-	if statConn, ok := iConn.(*internet.StatCouterConnection); ok {
-		iConn = statConn.Connection
-	}
-
 	outbound := session.OutboundFromContext(ctx)
 	if outbound == nil || !outbound.Target.IsValid() {
 		return newError("target not specified").AtError()
@@ -122,39 +104,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 
 	requestAddons := &encoding.Addons{
 		Flow: account.Flow,
-	}
-
-	allowUDP443 := false
-	switch requestAddons.Flow {
-	case vless.XRO + "-udp443", vless.XRD + "-udp443":
-		allowUDP443 = true
-		requestAddons.Flow = requestAddons.Flow[:16]
-		fallthrough
-	case vless.XRO, vless.XRD:
-		switch request.Command {
-		case protocol.RequestCommandMux:
-			return newError(requestAddons.Flow + " doesn't support Mux").AtWarning()
-		case protocol.RequestCommandUDP:
-			if !allowUDP443 && request.Port == 443 {
-				return newError(requestAddons.Flow + " stopped UDP/443").AtInfo()
-			}
-			requestAddons.Flow = ""
-		case protocol.RequestCommandTCP:
-			if xtlsConn, ok := iConn.(*xtls.Conn); ok {
-				xtlsConn.RPRX = true
-				xtlsConn.SHOW = xtls_show
-				xtlsConn.MARK = "XTLS"
-				if requestAddons.Flow == vless.XRD {
-					xtlsConn.DirectMode = true
-				}
-			} else {
-				return newError(`failed to use ` + requestAddons.Flow + `, maybe "security" is not "xtls"`).AtWarning()
-			}
-		}
-	default:
-		if _, ok := iConn.(*xtls.Conn); ok {
-			panic(`To avoid misunderstanding, you must fill in VLESS "flow" when using XTLS.`)
-		}
 	}
 
 	sessionPolicy := h.policyManager.ForLevel(request.User.Level)
@@ -188,10 +137,6 @@ func (h *Handler) Process(ctx context.Context, link *transport.Link, dialer inte
 			return newError("failed to transfer request payload").Base(err).AtInfo()
 		}
 
-		// Indicates the end of request payload.
-		switch requestAddons.Flow {
-		default:
-		}
 		return nil
 	}
 

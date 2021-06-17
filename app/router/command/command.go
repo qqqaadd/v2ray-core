@@ -2,7 +2,7 @@
 
 package command
 
-//go:generate go run v2ray.com/core/common/errors/errorgen
+//go:generate go run github.com/v2fly/v2ray-core/v4/common/errors/errorgen
 
 import (
 	"context"
@@ -10,10 +10,10 @@ import (
 
 	"google.golang.org/grpc"
 
-	"v2ray.com/core"
-	"v2ray.com/core/common"
-	"v2ray.com/core/features/routing"
-	"v2ray.com/core/features/stats"
+	core "github.com/v2fly/v2ray-core/v4"
+	"github.com/v2fly/v2ray-core/v4/common"
+	"github.com/v2fly/v2ray-core/v4/features/routing"
+	"github.com/v2fly/v2ray-core/v4/features/stats"
 )
 
 // routingServer is an implementation of RoutingService.
@@ -39,7 +39,7 @@ func (s *routingServer) TestRoute(ctx context.Context, request *TestRouteRequest
 		return nil, err
 	}
 	if request.PublishResult && s.routingStats != nil {
-		ctx, _ := context.WithTimeout(context.Background(), 4*time.Second)
+		ctx, _ := context.WithTimeout(context.Background(), 4*time.Second) // nolint: govet
 		s.routingStats.Publish(ctx, route)
 	}
 	return AsProtobufMessage(request.FieldSelectors)(route), nil
