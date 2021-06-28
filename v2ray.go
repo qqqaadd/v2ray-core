@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/v2fly/v2ray-core/v4/app/log"
 	"github.com/v2fly/v2ray-core/v4/common"
 	"github.com/v2fly/v2ray-core/v4/common/serial"
 	"github.com/v2fly/v2ray-core/v4/features"
@@ -250,6 +251,7 @@ func (s *Instance) Close() error {
 
 	var errors []interface{}
 	for _, f := range s.features {
+		if _,islog := f.(*log.Instance);islog {continue}
 		if err := f.Close(); err != nil {
 			errors = append(errors, err)
 		}
